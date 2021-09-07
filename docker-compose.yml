@@ -1,0 +1,39 @@
+version: "3"
+services:
+  web:
+    build: .
+    container_name: seso_web
+    # command: gunicorn seso.wsgi:application --bind 0.0.0.0:8000
+    command: python3 manage.py runserver 0:8000
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - seso-networks
+  db:
+    platform: linux/x86_64
+    image: mysql:latest
+    container_name: seso_db
+    restart: unless-stopped
+    ports:
+      - "33403:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: seso
+    volumes:
+      - seso_volume:/var/lib/mysql
+      - seso_settings:/etc/mysql
+    networks:
+      - seso-networks
+
+networks:
+  seso-networks:
+
+volumes:
+  seso_volume:
+  seso_settings:
