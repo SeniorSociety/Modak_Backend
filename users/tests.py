@@ -12,9 +12,6 @@ class NamecardPOSTTest(TestCase):
         user       = User.objects.create(id = 1)
         self.token = jwt.encode({"id" : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
 
-    def tearDown(self):
-        User.objects.all().delete()
-
     @patch("core.utils.boto3.client")
     def test_namecard_post_success(self, mocked_requests):
         client = Client()
@@ -105,3 +102,101 @@ class NamecardGETTest(TestCase):
             "namecard" : "<div>namecard</div>"
             }})
         self.assertEqual(response.status_code, 200)
+
+class KaKaoSignInTest(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        User.objects.all().delete()
+
+    @patch('users.views.requests')
+    def test_kakao_social_login_success(self, mocked_requests):
+        client = Client()
+
+        class MockedResponse:
+            def json(self):
+                return {
+                    'id'           : '12387623842873291',
+                    'connected_at' : '2021-08-25T09:16:53Z',
+                    'properties'   : {'nickname': 'Jun'},
+                    'kakao_account': {
+                        'profile_nickname_needs_agreement': False,
+                        'profile'                         : {'nickname': '장감자'},
+                        'has_email'                       : True,
+                        'email_needs_agreement'           : False,
+                        'is_email_valid'                  : True,
+                        'is_email_verified'               : True,
+                        'email'                           : 'potato@naver.com'
+                    }
+                }
+        mocked_requests.get = MagicMock(return_value = MockedResponse())
+        headers             = {'HTTP_Authorization' : 'FAKE_TOKEN'}
+        response            = client.post('/users/kakao', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+
+        token    = response.json()['TOKEN']
+        user_id  = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHMS)['id']
+        kakao_id = User.objects.get(id=user_id).kakao
+
+        self.assertEqual(kakao_id, '12387623842873291')
+
+    @patch('users.views.requests')
+    def test_kakao_social_login_invalid_token(self, mocked_requests):
+        client   = Client()
+        response = client.post('/users/kakao', content_type='application/json')
+
+        self.assertEqual(response.json(), {'MESSAGE' : 'INVALID_TOKEN'})
+        self.assertEqual(response.status_code, 400)
+        
+class NicknameTest(TestCase):
+    def setUp(self):
+        User.objects.create(
+            id    = 1,
+            name  = 'Jun',
+            nickname = 'HoJun',
+            kakao = '10210318112998147129'
+        )
+
+        User.objects.create(
+            id       = 2,
+            name     = 'Min',
+            nickname = 'Minch',
+            kakao    = '03719836378128367'
+        )
+
+        self.token = jwt.encode({'id' : 1}, SECRET_KEY, algorithm=ALGORITHMS)
+
+    def tearDown(self):
+        User.objects.all().delete()
+
+    def test_nickname_update_success(self):
+        client = Client()
+
+        data     = {'nickname' : 'Min'}
+        headers  = {'HTTP_Authorization' : self.token}
+        response = client.post('/users/nickname', content_type='application/json', data=data, **headers)
+
+        self.assertEqual(response.json(), {'MESSAGE' : 'SUCCESS'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_nickname_already_exists(self):
+        client = Client()
+
+        data     = {'nickname' : 'Minch'}
+        headers  = {'HTTP_Authorization' : self.token}
+        response = client.post('/users/nickname', content_type='application/json', data=data, **headers)
+
+        self.assertEqual(response.json(), {'MESSAGE' : 'NICKNAME_ALREADY_EXISTS'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_nickname_update_invalid_token(self):
+        client = Client()
+
+        data     = {'nickname' : 'Min'}
+        response = client.post('/users/nickname', content_type='application/json', data=data)
+
+        self.assertEqual(response.json(), {"MESSAGE" : "INVALID_TOKEN"})
+        self.assertEqual(response.status_code, 400)
+

@@ -1,9 +1,12 @@
+import jwt, json, requests
+
 from django.http  import JsonResponse
 from django.views import View
 
+from users.models   import User
 from core.utils     import CloudStorage
 from users.utils    import login_decorator
-from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL
+from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL, SECRET_KEY, ALGORITHMS
 
 class NamecardView(View):
     @login_decorator
@@ -42,3 +45,51 @@ class NamecardView(View):
             "namecard" : user.namecard
         }
         return JsonResponse({"MESSAGE":data}, status=200)
+
+class KakaoLoginView(View):
+    def post(self, request):
+        try:
+            access_token = request.headers.get('Authorization')
+
+            if not access_token:
+                return JsonResponse({'MESSAGE' : 'INVALID_TOKEN'}, status=400)
+
+            response = requests.get(
+                "https://kapi.kakao.com/v2/user/me",
+                headers = {'Authorization': f'Bearer {access_token}'},
+                timeout=3
+            ).json()
+
+            print(response)
+
+            user, created = User.objects.get_or_create(
+                kakao = response['id']
+            )
+
+            token = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
+
+            return JsonResponse({
+                'MESSAGE' : 'SUCCESS',
+                'TOKEN' : token
+            }, status=200)
+
+        except KeyError:
+            return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
+
+class NicknameView(View):
+    @login_decorator
+    def post(self, request):
+        try:
+            nickname = json.loads(request.body)['nickname']
+            user = request.user
+
+            if User.objects.filter(nickname=nickname).exists():
+                return JsonResponse({'MESSAGE' : 'NICKNAME_ALREADY_EXISTS'}, status=400)
+            
+            user.nickname = nickname
+            user.save()
+            
+            return JsonResponse({'MESSAGE' : 'SUCCESS'}, status=200)
+
+        except KeyError:
+            return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
