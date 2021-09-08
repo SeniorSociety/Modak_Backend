@@ -361,3 +361,8 @@ zsdoc/data
 
 .idea/
 my_settings.py
+db_uploader.py
+comment.csv
+posting.csv
+gallery.csv
+user.csv
