@@ -13,6 +13,8 @@ services:
       - db
     networks:
       - seso-networks
+    restart:
+      always
   db:
     platform: linux/x86_64
     image: mysql:latest

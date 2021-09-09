@@ -362,3 +362,8 @@ zsdoc/data
 .idea/
 my_settings.py
 query_debugger.py
+db_uploader.py
+gallery.csv
+user.csv
+posting.csv
+comment.csv
