@@ -5,6 +5,7 @@ from core.models import TimeStampModel
 class Gallery(models.Model):
     name  = models.CharField(max_length=30)
     image = models.URLField(max_length=2000)
+    bookmark = models.ManyToManyField('users.user', related_name='bookmarkers')
 
     class Meta:
         db_table = 'galleries'
@@ -27,7 +28,3 @@ class Comment(TimeStampModel):
 
     class Meta:
         db_table = 'comments'
-
-class Bookmark(models.Model):
-    user    = models.ForeignKey('users.user', on_delete=models.CASCADE)
-    gallery = models.ForeignKey('gallery', on_delete=models.CASCADE)
