@@ -13,10 +13,9 @@ class Posting(TimeStampModel):
     gallery    = models.ForeignKey('gallery', on_delete=models.CASCADE)
     title      = models.CharField(max_length=100)
     content    = models.CharField(max_length=2000)
-    comment    = models.ForeignKey('comment', on_delete=models.CASCADE)
     user       = models.ForeignKey('users.user', on_delete=models.CASCADE)
     view_count = models.PositiveIntegerField(default=0)
-    thumbnail  = models.URLField(max_length=2000)
+    thumbnail  = models.URLField(max_length=2000, null=True)
 
     class Meta:
         db_table = 'postings'
@@ -24,7 +23,11 @@ class Posting(TimeStampModel):
 class Comment(TimeStampModel):
     user    = models.ForeignKey('users.user', on_delete=models.CASCADE)
     content = models.CharField(max_length=500)
+    posting = models.ForeignKey('posting', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'comments'
-        
+
+class Bookmark(models.Model):
+    user    = models.ForeignKey('users.user', on_delete=models.CASCADE)
+    gallery = models.ForeignKey('gallery', on_delete=models.CASCADE)
