@@ -189,5 +189,9 @@ LOGGING = {
             'level'    : 'INFO',
             'propagate': False,
         },
+        'users': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+        },
     },
 }
