@@ -1,3 +1,43 @@
-from django.shortcuts import render
+from django.http  import JsonResponse
+from django.views import View
 
-# Create your views here.
+from core.utils     import CloudStorage
+from users.utils    import login_decorator
+from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY
+
+class NamecardView(View):
+    @login_decorator
+    def post(self, request):
+        try:
+            user          = request.user
+            name          = request.POST.get("name")
+            age           = request.POST.get("age")
+            description   = request.POST.get("description")
+            namecard      = request.POST.get("namecard")
+            image         = request.FILES.get("image")
+            if image:
+                cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY, bucket = AWS_S3_STORAGE_BUCKET_NAME)
+                upload_key    = cloud_storage.upload_file(image)
+                image         = f"https://seso.s3.ap-northeast-2.amazonaws.com/{upload_key}"
+
+            user.name        = name if name else None
+            user.age         = age if age else None
+            user.description = description if description else None
+            user.namecard    = namecard if namecard else None
+            user.image       = image if image else None
+            user.save()
+            return JsonResponse({"message":"SUCCESS"}, status=201)
+        except:
+            return JsonResponse({"message":"KEY_ERROR"}, status=400) 
+
+    @login_decorator
+    def get(self, request):
+        user = request.user
+        data = {
+            "image" : user.image,
+            "name"  : user.name,
+            "age"   : user.age,
+            "description" : user.description,
+            "namecard" : user.namecard
+        }
+        return JsonResponse({"data":data}, status=200)
