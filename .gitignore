@@ -361,3 +361,4 @@ zsdoc/data
 
 .idea/
 my_settings.py
+query_debugger.py
