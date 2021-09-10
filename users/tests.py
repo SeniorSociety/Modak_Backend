@@ -41,7 +41,7 @@ class NamecardPOSTTest(TestCase):
 
         mocked_requests.upload = MagicMock(return_value = MockedResponse())
         response               = client.post("/users/namecard", body, **header)
-        self.assertEqual(response.json(), {"message" : "SUCCESS"})
+        self.assertEqual(response.json(), {"MESSAGE" : "SUCCESS"})
         self.assertEqual(response.status_code, 201)
 
     @patch("core.utils.boto3.client")
@@ -68,7 +68,7 @@ class NamecardPOSTTest(TestCase):
 
         mocked_requests.upload = MagicMock(return_value = MockedResponse())
         response               = client.post("/users/namecard", body)
-        self.assertEqual(response.json(), {'MESSAGE' : 'INVALID_TOKEN'})
+        self.assertEqual(response.json(), {"MESSAGE" : "INVALID_TOKEN"})
         self.assertEqual(response.status_code, 400)
 
 class NamecardGETTest(TestCase):
