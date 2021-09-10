@@ -68,7 +68,7 @@ class NamecardPOSTTest(TestCase):
 
         mocked_requests.upload = MagicMock(return_value = MockedResponse())
         response               = client.post("/users/namecard", body)
-        self.assertEqual(response.json(), {"MESSAGE" : "INVALID_TOKEN"})
+        self.assertEqual(response.json(), {"MESSAGE": "INVALID_TOKEN"})
         self.assertEqual(response.status_code, 400)
 
 class NamecardGETTest(TestCase):
@@ -97,7 +97,7 @@ class NamecardGETTest(TestCase):
         header = {"HTTP_Authorization" : self.token}
         response = client.get("/users/namecard", **header)
         self.assertEqual(response.json(),
-        {"data":{
+        {"MESSAGE":{
             "image" : "test.jpeg",
             "name"  : "James",
             "age"   : 4,
