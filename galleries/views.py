@@ -7,11 +7,21 @@ from django.http           import JsonResponse
 from galleries.models   import Gallery, Bookmark, Posting, Comment
 from users.utils        import login_decorator
 
+class GalleriesView(View):
+    def get(self, request):
+        galleries    = Gallery.objects.all()
+        gallery_list = [{
+            "gallery_name"  : gallery.name,
+            "gallery_image" : gallery.image
+        } for gallery in galleries]
+        
+        return JsonResponse({"MESSAGE" : gallery_list}, status=200)
+
 class BookmarkView(View):
     @login_decorator
     def post(self, request, gallery_id):
         if not Gallery.objects.filter(id=gallery_id).exists():
-            return JsonResponse({'MESSAGE' : 'GALLERY_DOES_NOT_EXIST'}, status=400)
+            return JsonResponse({"MESSAGE" : "GALLERY_DOES_NOT_EXIST"}, status=400)
 
         bookmark, is_bookmark = Bookmark.objects.get_or_create(
             gallery = Gallery.objects.get(id=gallery_id),
@@ -20,20 +30,20 @@ class BookmarkView(View):
 
         if not is_bookmark:
             bookmark.delete()
-            return JsonResponse({'MESSAGE' : 'BOOKMARK_DELETED'}, status=204)
+            return JsonResponse({"MESSAGE" : "BOOKMARK_DELETED"}, status=204)
 
-        return JsonResponse({'MESSAGE' : 'BOOKMARK_CREATED'}, status=201)
+        return JsonResponse({"MESSAGE" : "BOOKMARK_CREATED"}, status=201)
 
     @login_decorator
     def get(self, request):
-        bookmarks = Bookmark.objects.select_related('gallery').filter(user_id=request.user.id)
+        bookmarks = Bookmark.objects.select_related("gallery").filter(user_id=request.user.id)
 
         gallery_list = [{
-            'gallery_name' : bookmark.gallery.name,
-            'gallery_image' : bookmark.gallery.image
+            "gallery_name"  : bookmark.gallery.name,
+            "gallery_image" : bookmark.gallery.image
         } for bookmark in bookmarks ]
 
-        return JsonResponse({'LIST' : gallery_list}, status=200)
+        return JsonResponse({"MESSAGE" : gallery_list}, status=200)
 
 class PostingsView(View):
     def get(self, request, gallery_id):
@@ -60,7 +70,7 @@ class PostingsView(View):
             "user_id"       : posting.user.id,
         } for posting in postings]
 
-        return JsonResponse({"MESSAGE" : response, "is_next" : is_next}, status=200)
+        return JsonResponse({"MESSAGE" : response, "IS_NEXT" : is_next}, status=200)
 
     @login_decorator
     def post(self, request, gallery_id) :
@@ -80,12 +90,12 @@ class PostingsView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
 
         except KeyError :
-            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
 class PostingView(View):
     def get(self, request, posting_id, gallery_id):
-        if not Posting.objects.filter(id = posting_id).exists():
-            return JsonResponse({"MESSAGE": "KEYERROR"}, status = 400)
+        if not Posting.objects.filter(id = posting_id, gallery_id = gallery_id).exists():
+            return JsonResponse({"MESSAGE": "KEY_ERROR"}, status = 400)
 
         posting = Posting.objects.select_related("user").prefetch_related("comment_set").get(id = posting_id)
 
@@ -121,7 +131,7 @@ class PostingView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
 
         except KeyError :
-            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
     @login_decorator
     def delete(self, request, posting_id, gallery_id) :
@@ -133,7 +143,7 @@ class PostingView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 204)
 
         except KeyError :
-            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
 class CommentsView(View):
     def get(self, request, posting_id, gallery_id):
@@ -153,7 +163,7 @@ class CommentsView(View):
             "user_id"       : comment.user.id
         } for comment in comments]
 
-        return JsonResponse({"MESSAGE" : response, "page_range" : num_pages}, status = 200)
+        return JsonResponse({"MESSAGE" : response, "PAGE_RANGE" : num_pages}, status = 200)
 
     @login_decorator
     def post(self, request, posting_id, gallery_id) :
@@ -171,7 +181,7 @@ class CommentsView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
 
         except KeyError :
-            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
 class CommentView(View):
     @login_decorator
@@ -185,7 +195,7 @@ class CommentView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
 
         except KeyError :
-            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
     @login_decorator
     def delete(self, request, posting_id, gallery_id, comment_id) :
@@ -197,4 +207,4 @@ class CommentView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 204)
 
         except KeyError :
-            return JsonResponse({"message" : "KEY_ERROR"}, status = 400)
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)

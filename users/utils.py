@@ -10,17 +10,17 @@ logger = logging.getLogger(__name__)
 def login_decorator(func):
     def wrapper(self, request, *args, **kwargs):
         try:
-            access_token = request.headers.get('Authorization')
+            access_token = request.headers.get("Authorization")
             payload      = jwt.decode(access_token, SECRET_KEY, algorithms=ALGORITHMS)
-            user         = User.objects.get(id=payload['id'])
+            user         = User.objects.get(id=payload["id"])
             request.user = user
 
         except jwt.exceptions.DecodeError:
             logger.error("토큰값 에러")
-            return JsonResponse({'MESSAGE' : 'INVALID_TOKEN'}, status=400)
+            return JsonResponse({"MESSAGE" : "INVALID_TOKEN"}, status=400)
             
         except User.DoesNotExist:
             logger.error("존재하지 않는 유저")
-            return JsonResponse({'MESSAGE' : 'INVALID_USER'}, status=400)
+            return JsonResponse({"MESSAGE" : "INVALID_USER"}, status=400)
         return func(self, request, *args, **kwargs)
     return wrapper

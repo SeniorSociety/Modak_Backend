@@ -26,9 +26,9 @@ class NamecardView(View):
             user.namecard    = namecard if namecard else None
             user.image       = image if image else None
             user.save()
-            return JsonResponse({"message":"SUCCESS"}, status=201)
+            return JsonResponse({"MESSAGE":"SUCCESS"}, status=201)
         except:
-            return JsonResponse({"message":"KEY_ERROR"}, status=400) 
+            return JsonResponse({"MESSAGE":"KEY_ERROR"}, status=400)
 
     @login_decorator
     def get(self, request):
@@ -40,4 +40,4 @@ class NamecardView(View):
             "description" : user.description,
             "namecard" : user.namecard
         }
-        return JsonResponse({"data":data}, status=200)
+        return JsonResponse({"MESSAGE":data}, status=200)
