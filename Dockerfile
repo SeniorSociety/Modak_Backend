@@ -22,9 +22,9 @@ COPY . .
 
 ## Run the application on the port 8080
 #8000번 포트를 외부에 개방하도록 설정
-#EXPOSE 8000   
+EXPOSE 8000   
 
 #CMD ["python", "./setup.py", "runserver", "--host=0.0.0.0", "-p 8080"]
 #gunicorn을 사용해서 서버를 실행
-#CMD ["gunicorn", "--bind", "0.0.0.0:8000", "maeilyhotel.wsgi:application"]  
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "seso.wsgi:application"]  
 
