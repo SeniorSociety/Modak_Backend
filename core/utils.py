@@ -13,7 +13,6 @@ class CloudStorage:
 
     def upload_file(self, image):
         upload_key = str(uuid.uuid4()).replace("-","") + image.name
-        
         self.s3_client.upload_fileobj(
             image,
             self.bucket,

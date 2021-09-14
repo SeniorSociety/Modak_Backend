@@ -3,7 +3,7 @@ from django.views import View
 
 from core.utils     import CloudStorage
 from users.utils    import login_decorator
-from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY
+from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL
 
 class NamecardView(View):
     @login_decorator
@@ -15,11 +15,12 @@ class NamecardView(View):
             description   = request.POST.get("description")
             namecard      = request.POST.get("namecard")
             image         = request.FILES.get("image")
+
             if image:
                 cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY, bucket = AWS_S3_STORAGE_BUCKET_NAME)
                 upload_key    = cloud_storage.upload_file(image)
-                image         = f"https://seso.s3.ap-northeast-2.amazonaws.com/{upload_key}"
-
+                image         = AWS_S3_BUCKET_URL + upload_key
+                
             user.name        = name if name else None
             user.age         = age if age else None
             user.description = description if description else None
