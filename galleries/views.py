@@ -83,22 +83,8 @@ class PostingsView(View):
 
             title     = request.POST.get("title")
             content   = request.POST.get("content")
-            images    = request.FILES.getlist("image")
-            imagelist = []
-            
-            if images:
-                for image in images:
-                    cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY,
-                                                 bucket = AWS_S3_STORAGE_BUCKET_NAME)
-                    upload_key    = cloud_storage.upload_file(image)
-                    image         = AWS_S3_BUCKET_URL + upload_key
-                    imagelist.append(image)
-                
-                m = re.findall('!\[\]\((.+?)\)', content)
-                
-                for num in range(len(imagelist)):
-                    content = content.replace(m[num], imagelist[num])
-            
+            imagelist = re.findall('!\[\]\((.+?)\)', content)
+
             posting = Posting.objects.create(
                 gallery_id = gallery_id,
                 title      = title if title else None,
@@ -123,8 +109,8 @@ class PostingView(View):
 
         posting = Posting.objects.select_related("user").prefetch_related("comment_set", "viewcount_set").get(id = posting_id)
 
-        posting.viewcount_set.get(posting_id=posting.id).view_count += 1
-        posting.save()
+        VC = posting.viewcount_set.get(posting_id = posting.id).view_count + 1
+        posting.viewcount_set.filter(posting_id=posting.id).update(view_count = VC)
 
         response = {
             "id"            : posting.id,
@@ -149,21 +135,8 @@ class PostingView(View):
         try :
             title     = request.POST.get("title")
             content   = request.POST.get("content")
-            images    = request.FILES.getlist("image")
-            imagelist = []
 
-            if images :
-                for image in images :
-                    cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY,
-                                                 bucket = AWS_S3_STORAGE_BUCKET_NAME)
-                    upload_key    = cloud_storage.upload_file(image)
-                    image         = AWS_S3_BUCKET_URL + upload_key
-                    imagelist.append(image)
-
-                m = re.findall('!\[\]\((.+?)\)', content)
-                
-                for num in range(len(imagelist)) :
-                    content = content.replace(m[num], imagelist[num])
+            imagelist = re.findall('!\[\]\((.+?)\)', content)
             
             Posting.objects.filter(id = posting_id).update(
                 title     = title if title else None,
@@ -250,4 +223,18 @@ class CommentView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 204)
 
         except KeyError :
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
+
+class ImageView(View):
+    @login_decorator
+    def post(self, request) :
+        try :
+            image         = request.FILES.get("image")
+            cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY,
+                                         bucket = AWS_S3_STORAGE_BUCKET_NAME)
+            upload_key    = cloud_storage.upload_file(image)
+            image         = AWS_S3_BUCKET_URL + upload_key
+            return JsonResponse({"MESSAGE" : image}, status = 201)
+            
+        except KeyError:
             return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)

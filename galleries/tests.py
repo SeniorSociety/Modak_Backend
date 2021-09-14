@@ -175,7 +175,7 @@ class PostingListTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     @patch("core.utils.boto3.client")
-    def test_posting_post_success(self, mocked_requests) :
+    def test_posting_image_success(self, mocked_requests) :
         client = Client()
     
         class MockedResponse :
@@ -183,25 +183,33 @@ class PostingListTest(TestCase):
                 return None
     
         test_image = SimpleUploadedFile(
-            name         = "test.jpeg",
-            content      = b"file_content",
+            name = "test.jpeg",
+            content = b"file_content",
             content_type = "image/ief"
         )
-
+    
+        user         = User.objects.get(nickname = "Jun").id
+        access_token = jwt.encode({"id" : user}, SECRET_KEY, algorithm = ALGORITHMS)
+        header       = {"HTTP_Authorization" : access_token}
+        body         = {"image"   : test_image}
+    
+        mocked_requests.upload = MagicMock(return_value = MockedResponse())
+        response = client.post(f"/galleries/images", body, **header)
+        self.assertEqual(response.status_code, 201)
+    
+    def test_posting_post_success(self) :
+        client       = Client()
         user         = User.objects.get(nickname = "Jun").id
         access_token = jwt.encode({"id" : user}, SECRET_KEY, algorithm = ALGORITHMS)
         gallery      = Gallery.objects.all()[0]
         
         header = {"HTTP_Authorization" : access_token}
-    
-        body = {
+        body   = {
             "title"   : "Test",
-            "content" : "![](dddd) 사진입니다.",
-            "image"   : test_image
+            "content" : "![](dddd) 사진입니다."
         }
-    
-        mocked_requests.upload = MagicMock(return_value = MockedResponse())
-        response               = client.post(f"/galleries/{gallery.id}", body, **header)
+        
+        response = client.post(f"/galleries/{gallery.id}", body, **header)
         self.assertEqual(response.status_code, 201)
         
 class PostingTest(TestCase) :
@@ -293,19 +301,8 @@ class PostingTest(TestCase) :
         response   = client.get(f"/galleries/{gallery_id}/{posting_id}")
         self.assertEqual(response.status_code, 200)
         
-    @patch("core.utils.boto3.client")
-    def test_posting_patch_success(self, mocked_requests) :
+    def test_posting_patch_success(self) :
         client = Client()
-    
-        class MockedResponse :
-            def upload(self) :
-                return None
-    
-        test_image = SimpleUploadedFile(
-            name         = "test.jpeg",
-            content      = b"file_content",
-            content_type = "image/ief"
-        )
     
         user         = User.objects.get(nickname = "testuser1")
         access_token = jwt.encode({"id" : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
@@ -316,11 +313,9 @@ class PostingTest(TestCase) :
         body = {
             "title"   : "Test",
             "content" : "![](dddkd) 사진입니다.",
-            "image"   : test_image
         }
     
-        mocked_requests.upload = MagicMock(return_value = MockedResponse())
-        response               = client.post(f"/galleries/{gallery.id}/{posting.id}", body, **headers)
+        response = client.post(f"/galleries/{gallery.id}/{posting.id}", body, **headers)
         self.assertEqual(response.status_code, 201)
         
     def test_posting_delete_success(self) :
