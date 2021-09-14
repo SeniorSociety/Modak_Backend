@@ -123,8 +123,8 @@ class PostingView(View):
 
         posting = Posting.objects.select_related("user").prefetch_related("comment_set", "viewcount_set").get(id = posting_id)
 
-        posting.viewcount_set.get(posting_id=posting.id).view_count += 1
-        posting.save()
+        VC = posting.viewcount_set.get(posting_id = posting.id).view_count + 1
+        posting.viewcount_set.filter(posting_id=posting.id).update(view_count = VC)
 
         response = {
             "id"            : posting.id,
