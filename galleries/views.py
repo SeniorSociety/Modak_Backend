@@ -1,11 +1,14 @@
 import json
+import re
 
 from django.core.paginator import Paginator
 from django.views          import View
 from django.http           import JsonResponse
+from core.utils            import CloudStorage
 
-from galleries.models   import Gallery, Bookmark, Posting, Comment
+from galleries.models   import Gallery, Bookmark, Posting, Comment, Viewcount
 from users.utils        import login_decorator
+from my_settings        import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL
 
 class GalleriesView(View):
     def get(self, request):
@@ -51,7 +54,7 @@ class PostingsView(View):
             return JsonResponse({"MESSAGE": "KEY_ERROR"}, status = 400)
 
         postingslist = Posting.objects.filter(gallery=gallery_id).select_related("user")\
-            .prefetch_related("comment_set").order_by("created_at")
+            .prefetch_related("comment_set", "viewcount_set").order_by("created_at")
 
         pagenator = Paginator(postingslist, 10)
         page      = request.GET.get("page", 1)
@@ -62,7 +65,7 @@ class PostingsView(View):
             "id"            : posting.id,
             "title"         : posting.title,
             "thumbnail"     : posting.thumbnail,
-            "view_count"    : posting.view_count,
+            "view_count"    : posting.viewcount_set.get(posting_id=posting.id).view_count,
             "created_at"    : posting.created_at,
             "updated_at"    : posting.updated_at,
             "comment_count" : posting.comment_set.count(),
@@ -78,13 +81,34 @@ class PostingsView(View):
             if not Gallery.objects.filter(id = gallery_id).exists() :
                 return JsonResponse({"MESSAGE" : "NO_GALLERY"}, status = 404)
 
-            data = json.loads(request.body)
-            Posting.objects.create(
+            title     = request.POST.get("title")
+            content   = request.POST.get("content")
+            images    = request.FILES.getlist("image")
+            imagelist = []
+            
+            if images:
+                for image in images:
+                    cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY,
+                                                 bucket = AWS_S3_STORAGE_BUCKET_NAME)
+                    upload_key    = cloud_storage.upload_file(image)
+                    image         = AWS_S3_BUCKET_URL + upload_key
+                    imagelist.append(image)
+                
+                m = re.findall('!\[\]\((.+?)\)', content)
+                
+                for num in range(len(imagelist)):
+                    content = content.replace(m[num], imagelist[num])
+            
+            posting = Posting.objects.create(
                 gallery_id = gallery_id,
-                title      = data.get("title"),
-                content    = data.get("content"),
+                title      = title if title else None,
+                content    = content if content else None,
                 user       = request.user,
-                thumbnail  = data.get("thumbnail")
+                thumbnail  = imagelist[0] if imagelist else "example.jpg"
+            )
+            
+            Viewcount.objects.create(
+                posting = posting
             )
 
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
@@ -97,16 +121,17 @@ class PostingView(View):
         if not Posting.objects.filter(id = posting_id, gallery_id = gallery_id).exists():
             return JsonResponse({"MESSAGE": "KEY_ERROR"}, status = 400)
 
-        posting = Posting.objects.select_related("user").prefetch_related("comment_set").get(id = posting_id)
+        posting = Posting.objects.select_related("user").prefetch_related("comment_set", "viewcount_set").get(id = posting_id)
 
-        posting.view_count += 1
+        posting.viewcount_set.get(posting_id=posting.id).view_count += 1
         posting.save()
 
         response = {
             "id"            : posting.id,
             "title"         : posting.title,
             "thumbnail"     : posting.thumbnail,
-            "view_count"    : posting.view_count,
+            "content"       : posting.content,
+            "view_count"    : posting.viewcount_set.get(posting_id=posting.id).view_count,
             "created_at"    : posting.created_at,
             "updated_at"    : posting.updated_at,
             "comment_count" : posting.comment_set.count(),
@@ -117,17 +142,35 @@ class PostingView(View):
         return JsonResponse({"MESSAGE" : response}, status = 200)
 
     @login_decorator
-    def patch(self, request, posting_id, gallery_id) :
+    def post(self, request, posting_id, gallery_id) :
         if Posting.objects.get(id = posting_id).user != request.user :
             return JsonResponse({"MESSAGE" : "NO_PERMISSION"}, status = 403)
 
         try :
-            data = json.loads(request.body)
+            title     = request.POST.get("title")
+            content   = request.POST.get("content")
+            images    = request.FILES.getlist("image")
+            imagelist = []
+
+            if images :
+                for image in images :
+                    cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY,
+                                                 bucket = AWS_S3_STORAGE_BUCKET_NAME)
+                    upload_key    = cloud_storage.upload_file(image)
+                    image         = AWS_S3_BUCKET_URL + upload_key
+                    imagelist.append(image)
+
+                m = re.findall('!\[\]\((.+?)\)', content)
+                
+                for num in range(len(imagelist)) :
+                    content = content.replace(m[num], imagelist[num])
+            
             Posting.objects.filter(id = posting_id).update(
-                title     = data.get("title"),
-                content   = data.get("content"),
-                thumbnail = data.get("thumbnail")
+                title     = title if title else None,
+                content   = content if content else None,
+                thumbnail = imagelist[0] if imagelist else "example.jpg"
             )
+            
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
 
         except KeyError :
@@ -173,8 +216,8 @@ class CommentsView(View):
 
             data = json.loads(request.body)
             Comment.objects.create(
-                content = data.get("content"),
-                user = request.user,
+                content    = data.get("content"),
+                user       = request.user,
                 posting_id = posting_id
             )
 
