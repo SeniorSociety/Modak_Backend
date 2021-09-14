@@ -1,10 +1,12 @@
 import jwt
 import json
 
-from django.test        import TestCase, Client
+from django.test                    import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
+from unittest.mock                  import patch, MagicMock
 
 from users.models       import User
-from galleries.models   import Gallery, Posting, Comment, Bookmark
+from galleries.models   import Gallery, Posting, Comment, Bookmark, Viewcount
 from my_settings        import SECRET_KEY, ALGORITHMS
 
 
@@ -118,9 +120,24 @@ class PostingListTest(TestCase):
             ),
             Posting(
                 gallery = gallery,
-                title   = "testpost3",
-                content = "testtext3",
+                title   = "testpost4",
+                content = "testtext4",
                 user    = User.objects.get(nickname = "Min")
+            )
+        ])
+        
+        Viewcount.objects.bulk_create([
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost1")
+            ),
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost2")
+            ),
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost3")
+            ),
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost4")
             )
         ])
 
@@ -146,6 +163,7 @@ class PostingListTest(TestCase):
         
     def tearDown(self):
         Comment.objects.all().delete()
+        Viewcount.objects.all().delete()
         Posting.objects.all().delete()
         User.objects.all().delete()
         Gallery.objects.all().delete()
@@ -156,17 +174,36 @@ class PostingListTest(TestCase):
         response   = client.get(f"/galleries/{gallery_id}?page=1")
         self.assertEqual(response.status_code, 200)
 
-    def test_posting_post_success(self):
-        client       = Client()
+    @patch("core.utils.boto3.client")
+    def test_posting_post_success(self, mocked_requests) :
+        client = Client()
+    
+        class MockedResponse :
+            def upload(self) :
+                return None
+    
+        test_image = SimpleUploadedFile(
+            name         = "test.jpeg",
+            content      = b"file_content",
+            content_type = "image/ief"
+        )
+
         user         = User.objects.get(nickname = "Jun").id
         access_token = jwt.encode({"id" : user}, SECRET_KEY, algorithm = ALGORITHMS)
-        headers      = {"HTTP_Authorization": access_token}
         gallery      = Gallery.objects.all()[0]
-        body         = {"title" : "1234", "content" : "4123"}
-
-        response   = client.post(f"/galleries/{gallery.id}", json.dumps(body), content_type="application/json", **headers)
+        
+        header = {"HTTP_Authorization" : access_token}
+    
+        body = {
+            "title"   : "Test",
+            "content" : "![](dddd) 사진입니다.",
+            "image"   : test_image
+        }
+    
+        mocked_requests.upload = MagicMock(return_value = MockedResponse())
+        response               = client.post(f"/galleries/{gallery.id}", body, **header)
         self.assertEqual(response.status_code, 201)
-
+        
 class PostingTest(TestCase) :
     @classmethod
     def setUpTestData(self) :
@@ -202,12 +239,27 @@ class PostingTest(TestCase) :
             ),
             Posting(
                 gallery = gallery,
-                title   = "testpost3",
-                content = "testtext3",
+                title   = "testpost4",
+                content = "testtext4",
                 user    = User.objects.get(nickname = "testuser2")
             )
         ])
 
+        Viewcount.objects.bulk_create([
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost1")
+            ),
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost2")
+            ),
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost3")
+            ),
+            Viewcount(
+                posting = Posting.objects.get(title = "testpost4")
+            )
+        ])
+        
         Comment.objects.bulk_create([
             Comment(
                 user    = User.objects.get(nickname = "testuser2"),
@@ -229,30 +281,48 @@ class PostingTest(TestCase) :
 
     def tearDown(self) :
         Comment.objects.all().delete()
+        Viewcount.objects.all().delete()
         Posting.objects.all().delete()
         User.objects.all().delete()
         Gallery.objects.all().delete()
 
     def test_posting_read_success(self):
         client     = Client()
-        gallery_id = Gallery.objects.all()[0].id
-        posting_id = Posting.objects.all()[0].id
+        gallery_id = Gallery.objects.get(name = "test").id
+        posting_id = Posting.objects.get(title = "testpost1").id
         response   = client.get(f"/galleries/{gallery_id}/{posting_id}")
         self.assertEqual(response.status_code, 200)
-
-    def test_posting_patch_success(self) :
-        client       = Client()
-        user_id      = User.objects.all()[0].id
-        access_token = jwt.encode({"id" : user_id}, SECRET_KEY, algorithm = ALGORITHMS)
+        
+    @patch("core.utils.boto3.client")
+    def test_posting_patch_success(self, mocked_requests) :
+        client = Client()
+    
+        class MockedResponse :
+            def upload(self) :
+                return None
+    
+        test_image = SimpleUploadedFile(
+            name         = "test.jpeg",
+            content      = b"file_content",
+            content_type = "image/ief"
+        )
+    
+        user         = User.objects.get(nickname = "testuser1")
+        access_token = jwt.encode({"id" : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
+        gallery      = Gallery.objects.get(name = "test")
+        posting      = Posting.objects.get(title = "testpost1")
         headers      = {"HTTP_Authorization" : access_token}
-        gallery      = Gallery.objects.all()[0]
-        posting      = Posting.objects.all()[0]
-        body         = {"title" : "title", "content" : "4124"}
-        response     = client.patch(f"/galleries/{gallery.id}/{posting.id}", json.dumps(body),
-                               content_type = "application/json", **headers)
-
+    
+        body = {
+            "title"   : "Test",
+            "content" : "![](dddkd) 사진입니다.",
+            "image"   : test_image
+        }
+    
+        mocked_requests.upload = MagicMock(return_value = MockedResponse())
+        response               = client.post(f"/galleries/{gallery.id}/{posting.id}", body, **headers)
         self.assertEqual(response.status_code, 201)
-
+        
     def test_posting_delete_success(self) :
         client       = Client()
         user_id      = User.objects.all()[0].id
@@ -299,8 +369,8 @@ class CommentTest(TestCase) :
             ),
             Posting(
                 gallery = gallery,
-                title   = "testpost3",
-                content = "testtext3",
+                title   = "testpost4",
+                content = "testtext4",
                 user    = User.objects.get(nickname = "testuser2")
             )
         ])
