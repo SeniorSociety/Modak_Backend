@@ -14,6 +14,7 @@ class GalleriesView(View):
     def get(self, request):
         galleries    = Gallery.objects.all()
         gallery_list = [{
+            "gallery_id"    : gallery.id,
             "gallery_name"  : gallery.name,
             "gallery_image" : gallery.image
         } for gallery in galleries]
