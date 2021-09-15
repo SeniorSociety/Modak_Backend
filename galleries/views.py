@@ -129,13 +129,16 @@ class PostingView(View):
 
     @login_decorator
     def post(self, request, posting_id, gallery_id) :
+        if not Posting.objects.filter(id = posting_id).exists() :
+            return JsonResponse({"MESSAGE" : "NO_POSTING"}, status = 404)
+        
         if Posting.objects.get(id = posting_id).user != request.user :
             return JsonResponse({"MESSAGE" : "NO_PERMISSION"}, status = 403)
 
         try :
             title     = request.POST.get("title")
             content   = request.POST.get("content")
-
+            
             imagelist = re.findall('!\[\]\((.+?)\)', content)
             
             Posting.objects.filter(id = posting_id).update(
@@ -150,7 +153,10 @@ class PostingView(View):
             return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
     @login_decorator
-    def delete(self, request, posting_id, gallery_id) :
+    def delete(self, request,  gallery_id, posting_id) :
+        if not Posting.objects.filter(id = posting_id).exists() :
+            return JsonResponse({"MESSAGE" : "NO_POSTING"}, status = 404)
+        
         if Posting.objects.get(id = posting_id).user != request.user :
             return JsonResponse({"MESSAGE" : "NO_PERMISSION"}, status = 403)
 
@@ -202,9 +208,12 @@ class CommentsView(View):
 class CommentView(View):
     @login_decorator
     def patch(self, request, posting_id, gallery_id, comment_id):
-        if Comment.objects.get(id=comment_id).user != request.user:
+        if not Comment.objects.filter(id = comment_id).exists() :
+            return JsonResponse({"MESSAGE" : "NO_COMMENT"}, status = 404)
+    
+        if Comment.objects.get(id = comment_id).user != request.user :
             return JsonResponse({"MESSAGE" : "NO_PERMISSION"}, status = 403)
-
+        
         try :
             data = json.loads(request.body)
             Comment.objects.filter(id=comment_id).update(content = data.get("content"))
@@ -215,7 +224,10 @@ class CommentView(View):
 
     @login_decorator
     def delete(self, request, posting_id, gallery_id, comment_id) :
-        if Posting.objects.get(id = comment_id).user != request.user:
+        if not Comment.objects.filter(id = comment_id).exists() :
+            return JsonResponse({"MESSAGE" : "NO_COMMENT"}, status = 404)
+        
+        if Comment.objects.get(id = comment_id).user != request.user:
             return JsonResponse({"MESSAGE" : "NO_PERMISSION"}, status = 403)
 
         try :
