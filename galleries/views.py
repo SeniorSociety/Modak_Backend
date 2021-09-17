@@ -97,8 +97,8 @@ class PostingsView(View):
             Viewcount.objects.create(
                 posting = posting
             )
-
-            return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 201)
+            
+            return JsonResponse({"MESSAGE" : "SUCCESS", "POSTING_ID" : posting.id}, status = 201)
 
         except KeyError :
             return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
