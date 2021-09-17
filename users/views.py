@@ -3,7 +3,7 @@ import jwt, json, requests
 from django.http  import JsonResponse
 from django.views import View
 
-from users.models   import User
+from users.models   import User, History
 from core.utils     import CloudStorage
 from users.utils    import login_decorator
 from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL, SECRET_KEY, ALGORITHMS
@@ -12,24 +12,38 @@ class NamecardView(View):
     @login_decorator
     def post(self, request):
         try:
-            user          = request.user
-            name          = request.POST.get("name")
-            age           = request.POST.get("age")
-            description   = request.POST.get("description")
-            namecard      = request.POST.get("namecard")
-            image         = request.FILES.get("image")
+            user      = request.user
+            name      = request.POST.get("userName")
+            introduce = request.POST.get("introduce")
+            slogan    = request.POST.get("userSlogan")
+            image     = request.FILES.get("userImage")
+            email     = request.POST.get("userEmail")
+            local     = request.POST.get("userLocal")
+            years     = request.POST.getlist("historyYear")
+            titles    = request.POST.getlist("historyTitle")
+            subtitles = request.POST.getlist("historySubtitle")
 
             if image:
                 cloud_storage = CloudStorage(id = AWS_IAM_ACCESS_KEY_ID, password = AWS_IAM_SECRET_ACCESS_KEY, bucket = AWS_S3_STORAGE_BUCKET_NAME)
                 upload_key    = cloud_storage.upload_file(image)
                 image         = AWS_S3_BUCKET_URL + upload_key
                 
-            user.name        = name if name else None
-            user.age         = age if age else None
-            user.description = description if description else None
-            user.namecard    = namecard if namecard else None
-            user.image       = image if image else None
+            user.name      = name if name else None
+            user.introduce = introduce if introduce else None
+            user.slogan    = slogan if slogan else None
+            user.image     = image if image else None
+            user.email     = email if email else None
+            user.location  = local if local else None
             user.save()
+
+            if years:
+                for i in range(len(years)):
+                    history          = History.objects.create(user=user)
+                    history.year     = years[i]
+                    history.title    = titles[i]
+                    history.subtitle = subtitles[i]
+                    history.save()
+
             return JsonResponse({"MESSAGE":"SUCCESS"}, status=201)
         except:
             return JsonResponse({"MESSAGE":"KEY_ERROR"}, status=400)
@@ -38,11 +52,17 @@ class NamecardView(View):
     def get(self, request):
         user = request.user
         data = {
-            "image" : user.image,
-            "name"  : user.name,
-            "age"   : user.age,
-            "description" : user.description,
-            "namecard" : user.namecard
+            "image"    : user.image,
+            "name"     : user.name,
+            "slogan"   : user.slogan,
+            "introduce": user.introduce,
+            "email"    : user.email,
+            "location" : user.location,
+            "works"    : [{
+                "year"    : history.year,
+                "title"   : history.title,
+                "subtitle": history.subtitle
+                } for history in History.objects.filter(user=user)]
         }
         return JsonResponse({"MESSAGE":data}, status=200)
 
@@ -59,8 +79,6 @@ class KakaoLoginView(View):
                 headers = {'Authorization': f'Bearer {access_token}'},
                 timeout=3
             ).json()
-
-            print(response)
 
             user, created = User.objects.get_or_create(
                 kakao = response['id']
