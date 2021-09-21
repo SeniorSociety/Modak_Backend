@@ -18,10 +18,7 @@ class BookmarkTest(TestCase):
             kakao       = "101",
             naver       = "102",
             image       = "Jun.jpg",
-            name        = "HoJun Jang",
-            age         = 26,
-            description = "Hello!",
-            namecard    = "abcdefg"
+            name        = "HoJun Jang"
         )
 
         Gallery.objects.create(
@@ -83,19 +80,13 @@ class PostingListTest(TestCase):
                 kakao       = "101",
                 naver       = "102",
                 image       = "Jun.jpg",
-                name        = "HoJun Jang",
-                age         = 26,
-                description = "Hello!",
-                namecard    = "abcdefg"),
+                name        = "HoJun Jang"),
             User(
                 nickname    = "Min",
                 kakao       = "201",
                 naver       = "202",
                 image       = "Min.jpg",
-                name        = "Min Choi",
-                age         = 26,
-                description = "Hello!!",
-                namecard    = "abcdefg")
+                name        = "Min Choi")
             ]
         )
 
