@@ -3,9 +3,10 @@ import jwt
 from django.test    import TestCase, Client
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from unittest.mock  import patch, MagicMock
-from users.models   import History, User
-from my_settings    import SECRET_KEY, ALGORITHMS
+from unittest.mock    import patch, MagicMock
+from users.models     import History, User
+from my_settings      import SECRET_KEY, ALGORITHMS
+from galleries.models import Gallery, Posting
 
 class NamecardPOSTTest(TestCase):
     def setUp(self):
@@ -221,3 +222,56 @@ class NicknameTest(TestCase):
         self.assertEqual(response.json(), {"MESSAGE" : "INVALID_TOKEN"})
         self.assertEqual(response.status_code, 400)
 
+class MyPositngsTest(TestCase):
+    def setUp(self):
+        gallery = Gallery.objects.create(
+            name = "test",
+            image = "image.jpg"
+        )
+    
+        User.objects.bulk_create([
+            User(nickname = "testuser1"),
+            User(nickname = "testuser2")
+        ]
+        )
+    
+        Posting.objects.bulk_create([
+            Posting(
+                gallery = gallery,
+                title = "testpost1",
+                content = "testtext1",
+                user = User.objects.get(nickname = "testuser1")
+            ),
+            Posting(
+                gallery = gallery,
+                title = "testpost2",
+                content = "testtext2",
+                user = User.objects.get(nickname = "testuser1")
+            ),
+            Posting(
+                gallery = gallery,
+                title = "testpost3",
+                content = "testtext3",
+                user = User.objects.get(nickname = "testuser1")
+            ),
+            Posting(
+                gallery = gallery,
+                title = "testpost4",
+                content = "testtext4",
+                user = User.objects.get(nickname = "testuser2")
+            )
+        ])
+
+        self.token = jwt.encode({'id' : User.objects.get(nickname = "testuser1").id}, SECRET_KEY, algorithm=ALGORITHMS)
+
+    def tearDown(self):
+        Posting.objects.all().delete()
+        User.objects.all().delete()
+        Gallery.objects.all().delete()
+        
+    def test_mypage_postings_list_success(self):
+        client   = Client()
+        headers  = {'HTTP_Authorization' : self.token}
+        response = client.get('/users/postings', **headers)
+
+        self.assertEqual(response.status_code, 200)

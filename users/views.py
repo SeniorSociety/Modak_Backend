@@ -3,10 +3,11 @@ import jwt, json, requests
 from django.http  import JsonResponse
 from django.views import View
 
-from users.models   import User, History
-from core.utils     import CloudStorage
-from users.utils    import login_decorator
-from my_settings    import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL, SECRET_KEY, ALGORITHMS
+from users.models     import User, History
+from core.utils       import CloudStorage
+from users.utils      import login_decorator
+from my_settings      import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL, SECRET_KEY, ALGORITHMS
+from galleries.models import Posting
 
 class NamecardView(View):
     @login_decorator
@@ -111,3 +112,18 @@ class NicknameView(View):
 
         except KeyError:
             return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
+
+class MyPostingsView(View):
+    @login_decorator
+    def get(self, request):
+        postings = Posting.objects.filter(user=request.user).select_related("gallery")
+        
+        posts = [{
+            "gallery_id" : posting.gallery.id,
+            "id"         : posting.id,
+            "title"      : posting.title,
+            "content"    : posting.content,
+            "created_at" : posting.created_at
+        } for posting in postings]
+        
+        return JsonResponse({'MESSAGE' : posts}, status = 200)
