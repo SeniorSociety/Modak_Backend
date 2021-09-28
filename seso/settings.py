@@ -178,7 +178,7 @@ LOGGING = {
             'level'     : 'DEBUG',
         },
         'file': {
-            'level'     : 'DEBUG',
+            'level'     : 'INFO',
             'class'     : 'logging.FileHandler',
             'formatter' : 'verbose',
             'filename'  : 'debug.log',
@@ -187,12 +187,8 @@ LOGGING = {
     'loggers': {
         'django.request': {
             'handlers' : ['console','file'],
-            'level'    : 'DEBUG',
+            'level'    : 'INFO',
             'propagate': False,
-        },
-        'users': {
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-        },
-    },
+        }
+    }
 }
