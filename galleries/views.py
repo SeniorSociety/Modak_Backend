@@ -108,22 +108,27 @@ class PostingView(View):
         if not Posting.objects.filter(id = posting_id, gallery_id = gallery_id).exists():
             return JsonResponse({"MESSAGE": "KEY_ERROR"}, status = 400)
 
-        posting = Posting.objects.select_related("user").prefetch_related("comment_set", "viewcount_set").get(id = posting_id)
-
-        VC = posting.viewcount_set.get(posting_id = posting.id).view_count + 1
-        posting.viewcount_set.filter(posting_id=posting.id).update(view_count = VC)
-
+        posting       = Posting.objects.select_related("user").prefetch_related("comment_set", "viewcount_set").get(id = posting_id)
+        first_posting = Posting.objects.filter(gallery_id = gallery_id).order_by('created_at').first()
+        last_posting  = Posting.objects.filter(gallery_id = gallery_id).order_by('created_at').last()
+        
+        vc            = posting.viewcount_set.get(posting_id = posting.id)
+        vc.view_count = vc.view_count + 1
+        vc.save()
+        
         response = {
             "id"            : posting.id,
             "title"         : posting.title,
             "thumbnail"     : posting.thumbnail,
             "content"       : posting.content,
-            "view_count"    : posting.viewcount_set.get(posting_id=posting.id).view_count,
+            "view_count"    : vc.view_count,
             "created_at"    : posting.created_at,
             "updated_at"    : posting.updated_at,
             "comment_count" : posting.comment_set.count(),
             "user_name"     : posting.user.nickname,
-            "user_id"       : posting.user.id
+            "user_id"       : posting.user.id,
+            "first"         : True if posting_id == first_posting.id else False,
+            "last"          : True if posting_id == last_posting.id else False
         }
 
         return JsonResponse({"MESSAGE" : response}, status = 200)
