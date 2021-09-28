@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock    import patch, MagicMock
 from users.models     import History, User
 from my_settings      import SECRET_KEY, ALGORITHMS
-from galleries.models import Gallery, Posting
+from galleries.models import Gallery, Posting, Bookmark
 
 class NamecardPOSTTest(TestCase):
     def setUp(self):
@@ -275,3 +275,104 @@ class MyPositngsTest(TestCase):
         response = client.get('/users/postings', **headers)
 
         self.assertEqual(response.status_code, 200)
+
+class ProfileGETTest(TestCase):
+    def setUp(self):
+        gallery = Gallery.objects.create(
+            name  = "test",
+            image = "image.jpg"
+        )
+        test_image = SimpleUploadedFile(
+            name         = "test.jpeg",
+            content      = b"file_content",
+            content_type = "image/ief"
+        )
+        User.objects.bulk_create([
+            User(
+                id        = 1,
+                name      = "James",
+                slogan    = "slogan",
+                introduce = "introduce",
+                image     = test_image,
+                email     = "email",
+                location  = "location"),
+            User(
+                id        = 2,
+                name      = "TEST",
+                slogan    = "TEST",
+                introduce = "TEST",
+                image     = test_image,
+                email     = "TEST",
+                location  = "TEST")
+        ])
+        profile_user = User.objects.get(id=2)
+        History.objects.create(
+            id       = 1,
+            year     = 1,
+            title    = "TEST",
+            subtitle = "TEST",
+            user     = profile_user)
+        Posting.objects.bulk_create([
+            Posting(
+                gallery = gallery,
+                id      = 1,
+                title   = "testpost1",
+                content = "testtext1",
+                user    = profile_user
+            ),
+            Posting(
+                gallery = gallery,
+                id      = 2,
+                title   = "testpost2",
+                content = "testtext2",
+                user    = profile_user
+            ),
+            Posting(
+                gallery = gallery,
+                id      = 3,
+                title   = "testpost3",
+                content = "testtext3",
+                user    = profile_user
+            ),
+            Posting(
+                gallery = gallery,
+                id      = 4,
+                title   = "testpost4",
+                content = "testtext4",
+                user    = profile_user
+            )
+        ])
+        Bookmark.objects.create(
+            gallery = gallery,
+            user    = profile_user
+        )
+        user = User.objects.get(id=1)
+        self.token = jwt.encode({"id" : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
+
+    def tearDown(self):
+        Bookmark.objects.all().delete()
+        Posting.objects.all().delete()
+        History.objects.all().delete()
+        User.objects.all().delete()
+        Gallery.objects.all().delete()
+
+    def test_own_profile_get_success(self):
+        client   = Client()
+        header = {"HTTP_Authorization" : self.token}
+        response = client.get("/users/1/profile", **header)
+        self.assertEqual(response.json()["MESSAGE"]["is_editable"], True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_others_profile_get_success(self):
+        client   = Client()
+        header = {"HTTP_Authorization" : self.token}
+        response = client.get("/users/2/profile", **header)
+        self.assertEqual(response.json()["MESSAGE"]["is_editable"], False)
+        self.assertEqual(response.status_code, 200)
+    
+    def test_profile_get_failed_NOT_FOUND_USER(self):
+        client   = Client()
+        header = {"HTTP_Authorization" : self.token}
+        response = client.get("/users/100/profile", **header)
+        self.assertEqual(response.json(), {'MESSAGE' : 'NOT_FOUND_USER'})
+        self.assertEqual(response.status_code, 400)

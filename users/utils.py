@@ -1,11 +1,9 @@
-import jwt, logging
+import jwt
 
 from django.http     import JsonResponse
 
 from my_settings     import SECRET_KEY, ALGORITHMS
 from users.models    import User
-
-logger = logging.getLogger(__name__)
 
 def login_decorator(func):
     def wrapper(self, request, *args, **kwargs):
@@ -16,11 +14,9 @@ def login_decorator(func):
             request.user = user
 
         except jwt.exceptions.DecodeError:
-            logger.error("토큰값 에러")
             return JsonResponse({"MESSAGE" : "INVALID_TOKEN"}, status=400)
             
         except User.DoesNotExist:
-            logger.error("존재하지 않는 유저")
             return JsonResponse({"MESSAGE" : "INVALID_USER"}, status=400)
         return func(self, request, *args, **kwargs)
     return wrapper
