@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock                  import patch, MagicMock
 
 from users.models       import User
-from galleries.models   import Gallery, Posting, Comment, Bookmark, Viewcount
+from galleries.models   import Gallery, Posting, Comment, Bookmark, Viewcount, Like
 from my_settings        import SECRET_KEY, ALGORITHMS
 
 
@@ -430,4 +430,67 @@ class CommentTest(TestCase) :
         comment      = Comment.objects.get(posting_id = posting.id, user_id = user_id)
         response     = client.delete(f"/galleries/{gallery.id}/{posting.id}/comments/{comment.id}", **headers)
 
+        self.assertEqual(response.status_code, 204)
+
+
+class PostingLikeTest(TestCase) :
+    @classmethod
+    def setUpTestData(self) :
+        gallery = Gallery.objects.create(
+            name = "test",
+            image = "image.jpg"
+        )
+        
+        User.objects.bulk_create([
+            User(nickname = "testuser1"),
+            User(nickname = "testuser2")
+        ]
+        )
+        
+        Posting.objects.bulk_create([
+            Posting(
+                gallery = gallery,
+                title = "testpost1",
+                content = "testtext1",
+                user = User.objects.get(nickname = "testuser1")
+            ),
+            Posting(
+                gallery = gallery,
+                title = "testpost2",
+                content = "testtext2",
+                user = User.objects.get(nickname = "testuser1")
+            ),
+            Posting(
+                gallery = gallery,
+                title = "testpost3",
+                content = "testtext3",
+                user = User.objects.get(nickname = "testuser1")
+            ),
+            Posting(
+                gallery = gallery,
+                title = "testpost4",
+                content = "testtext4",
+                user = User.objects.get(nickname = "testuser2")
+            )
+        ])
+    
+    def tearDown(self) :
+        Like.objects.all().delete()
+        Posting.objects.all().delete()
+        User.objects.all().delete()
+        Gallery.objects.all().delete()
+    
+    def test_posting_like_and_delete_success(self) :
+        client = Client()
+        gallery_id = Gallery.objects.get(name = "test").id
+        posting_id = Posting.objects.get(title = "testpost1").id
+        
+        user         = User.objects.get(nickname = "testuser1").id
+        access_token = jwt.encode({"id" : user}, SECRET_KEY, algorithm = ALGORITHMS)
+        header       = {"HTTP_Authorization" : access_token}
+        
+        response     = client.post(f"/galleries/{gallery_id}/{posting_id}/like", **header)
+        self.assertEqual(response.status_code, 201)
+        
+        response     = client.post(f"/galleries/{gallery_id}/{posting_id}/like", **header)
         self.assertEqual(response.status_code, 204)

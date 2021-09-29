@@ -40,3 +40,10 @@ class Viewcount(models.Model):
 
     class Meta:
         db_table = 'viewcounts'
+
+class Like(models.Model):
+    posting = models.ForeignKey('posting', on_delete=models.CASCADE)
+    user    = models.ForeignKey('users.user', on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'likes'
