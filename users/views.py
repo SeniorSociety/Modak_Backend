@@ -7,7 +7,7 @@ from users.models     import User, History
 from core.utils       import CloudStorage
 from users.utils      import login_decorator
 from my_settings      import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL, SECRET_KEY, ALGORITHMS
-from galleries.models import Posting, Bookmark
+from galleries.models import Posting, Bookmark, Like
 
 class NamecardView(View):
     @login_decorator
@@ -158,6 +158,13 @@ class ProfileView(View):
                     "content"   : posting.content,
                     "created_at": posting.created_at
                 } for posting in Posting.objects.filter(user=user).select_related("gallery")],
-            "is_editable" : True if user == request.user else False
+            "is_editable" : True if user == request.user else False,
+            "likes" : [{
+                    "gallery_id": like.posting.gallery.id,
+                    "id"        : like.posting.id,
+                    "title"     : like.posting.title,
+                    "content"   : like.posting.content,
+                    "created_at": like.posting.created_at
+                } for like in Like.objects.filter(user=user).select_related("posting")]
         }
         return JsonResponse({"MESSAGE":data}, status=200)
