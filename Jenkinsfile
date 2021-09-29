@@ -20,6 +20,12 @@ pipeline {
                 AWS_IAM_SECRET_ACCESS_KEY  = credentials('AWS_IAM_SECRET_ACCESS_KEY')
                 IMAGENAME                  = credentials('IMAGENAME')
                 DOCKERHUB_CREDENTIALS      = credentials('bigfanoftim-dockerhub')
+                AWS_REGION_NAME            = credentials('AWS_REGION_NAME')
+                AWS_LOG_GROUP              = credentials('AWS_LOG_GROUP')
+                AWS_LOG_STREAM             = credentials('AWS_LOG_STREAM')
+                AWS_LOGGER_NAME            = credentials('AWS_LOGGER_NAME')
+                BACKEND_FIRST_INSTANCE_IP  = credentials('BACKEND_FIRST_INSTANCE_IP')
+                BACKEND_SECOND_INSTANCE_IP = credentials('BACKEND_SECOND_INSTANCE_IP')
     }
     stages {
         stage('Build') {
@@ -33,6 +39,10 @@ pipeline {
                     echo 'AWS_S3_BUCKET_URL           = "${env.AWS_S3_BUCKET_URL}"' >> my_settings.py
                     echo 'SECRET_KEY                  = "${env.SECRET_KEY}"' >> my_settings.py
                     echo 'ALGORITHMS                  = "${env.ALGORITHMS}"' >> my_settings.py
+                    echo 'AWS_REGION_NAME             = "${env.AWS_REGION_NAME}"' >> my_settings.py
+                    echo 'AWS_LOG_GROUP               = "${env.AWS_LOG_GROUP}"' >> my_settings.py
+                    echo 'AWS_LOG_STREAM              = "${env.AWS_LOG_STREAM}"' >> my_settings.py
+                    echo 'AWS_LOGGER_NAME             = "${env.AWS_LOGGER_NAME}"' >> my_settings.py
                     echo 'DATABASES = {
                             "default" : {
                                 "ENGINE"    : "${env.DB_ENGINE}",
@@ -78,14 +88,14 @@ pipeline {
         stage('Deploy #1') {
             steps {
                 sshagent(credentials : ['real-ssh-key']) {
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@10.0.2.215 'docker pull '${env.IMAGENAME}:latest' && docker stop \$(docker ps -aq) && docker container prune -f && docker image prune -f && docker run -dp 8000:8000 '${env.IMAGENAME}:latest''"
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@'${BACKEND_FIRST_INSTANCE_IP}' 'docker pull '${env.IMAGENAME}:latest' && docker stop \$(docker ps -aq) && docker container prune -f && docker image prune -f && docker run -dp 8000:8000 '${env.IMAGENAME}:latest''"
                 }
             }
         }
         stage('Deploy #2') {
             steps {
                 sshagent(credentials : ['real-ssh-key']) {
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@10.0.4.72 'docker pull '${env.IMAGENAME}:latest' && docker stop \$(docker ps -aq) && docker container prune -f && docker image prune -f && docker run -dp 8000:8000 '${env.IMAGENAME}:latest''"
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@'${BACKEND_SECOND_INSTANCE_IP}' 'docker pull '${env.IMAGENAME}:latest' && docker stop \$(docker ps -aq) && docker container prune -f && docker image prune -f && docker run -dp 8000:8000 '${env.IMAGENAME}:latest''"
                 }
             }
         }
