@@ -6,7 +6,7 @@ from django.views          import View
 from django.http           import JsonResponse
 from core.utils            import CloudStorage
 
-from galleries.models   import Gallery, Bookmark, Posting, Comment, Viewcount
+from galleries.models   import Gallery, Bookmark, Posting, Comment, Viewcount, Like
 from users.utils        import login_decorator
 from my_settings        import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL
 
@@ -108,7 +108,7 @@ class PostingView(View):
         if not Posting.objects.filter(id = posting_id, gallery_id = gallery_id).exists():
             return JsonResponse({"MESSAGE": "KEY_ERROR"}, status = 400)
 
-        posting       = Posting.objects.select_related("user").prefetch_related("comment_set", "viewcount_set").get(id = posting_id)
+        posting       = Posting.objects.select_related("user").prefetch_related("comment_set").get(id = posting_id)
         first_posting = Posting.objects.filter(gallery_id = gallery_id).order_by('created_at').first()
         last_posting  = Posting.objects.filter(gallery_id = gallery_id).order_by('created_at').last()
         
@@ -171,6 +171,21 @@ class PostingView(View):
             return JsonResponse({"MESSAGE" : "SUCCESS"}, status = 204)
 
         except KeyError :
+            return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
+
+class PostingLikeView(View):
+    @login_decorator
+    def post(self, request, posting_id, gallery_id):
+        try:
+            like, flag = Like.objects.get_or_create(posting_id = posting_id, user_id = request.user.id)
+            
+            if not flag:
+                like.delete()
+                return JsonResponse({"MESSAGE" : "UNLIKED"}, status = 204)
+            else:
+                return JsonResponse({"MESSAGE" : "LIKED"}, status = 201)
+            
+        except KeyError:
             return JsonResponse({"MESSAGE" : "KEY_ERROR"}, status = 400)
 
 class CommentsView(View):
