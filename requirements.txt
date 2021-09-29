@@ -17,3 +17,4 @@ gunicorn==20.1.0
 cryptography==3.4.7
 boto3==1.18.38
 requests==2.26.0
+watchtower==1.0.6

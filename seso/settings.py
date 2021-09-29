@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
-from pathlib import Path
+from pathlib       import Path
+from boto3.session import Session
 
-from my_settings import SECRET_KEY, DATABASES
+from my_settings import SECRET_KEY, DATABASES, AWS_IAM_ACCESS_KEY_ID, AWS_IAM_SECRET_ACCESS_KEY, AWS_REGION_NAME, AWS_LOG_GROUP, AWS_LOG_STREAM, AWS_LOGGER_NAME
 
 import pymysql
 
@@ -162,32 +163,41 @@ CORS_ALLOW_HEADERS = (
 		#만약 허용해야할 추가적인 헤더키가 있다면?(사용자정의 키) 여기에 추가하면 됩니다.
 )
 
+# logger
+boto3_session = Session(
+    aws_access_key_id     = AWS_IAM_ACCESS_KEY_ID,
+    aws_secret_access_key = AWS_IAM_SECRET_ACCESS_KEY,
+    region_name           = AWS_REGION_NAME
+)
+
 LOGGING = {
     'disable_existing_loggers': False,
     'version': 1,
     'formatters': {
-         'verbose': {
-            'format': '{asctime} {levelname} {message}',
-            'style': '{'
+         'aws': {
+            'format' : u"%(asctime)s [%(levelname)-8s] %(message)s [%(pathname)s:%(lineno)d]",
+            'datefmt': "%Y-%m-%d %H:%M:%S"
         },
     },
     'handlers': {
-        'console': {
-            'class'     : 'logging.StreamHandler',
-            'formatter' : 'verbose',
-            'level'     : 'DEBUG',
-        },
-        'file': {
-            'level'     : 'INFO',
-            'class'     : 'logging.FileHandler',
-            'formatter' : 'verbose',
-            'filename'  : 'debug.log',
+        'watchtower': {
+            'level'        : 'WARNING',
+            'class'        : 'watchtower.CloudWatchLogHandler',
+            'boto3_session': boto3_session,
+            'log_group'    : AWS_LOG_GROUP,
+            'stream_name'  : AWS_LOG_STREAM,
+            'formatter'    : 'aws'
         },
     },
     'loggers': {
+        AWS_LOGGER_NAME: {
+            'level'    : 'WARNING',
+            'handlers' : ['watchtower'],
+            'propagate': False,
+        },
         'django.request': {
-            'handlers' : ['console','file'],
-            'level'    : 'INFO',
+            'handlers' : ['watchtower'],
+            'level'    : 'WARNING',
             'propagate': False,
         }
     }
