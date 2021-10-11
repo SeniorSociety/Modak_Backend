@@ -1,7 +1,8 @@
+def NAME_OF_STAGE
 pipeline {
     agent {
         docker {
-            image 'bigfanoftim/jenkins-image:101.0.5'
+            image 'dwenup/jenkins-image:101.0.5'
             args '-u root:sudo -v /var/run:/var/run'
         }
     }
@@ -19,19 +20,54 @@ pipeline {
                 AWS_IAM_ACCESS_KEY_ID      = credentials('AWS_IAM_ACCESS_KEY_ID')
                 AWS_IAM_SECRET_ACCESS_KEY  = credentials('AWS_IAM_SECRET_ACCESS_KEY')
                 IMAGENAME                  = credentials('IMAGENAME')
-                DOCKERHUB_CREDENTIALS      = credentials('bigfanoftim-dockerhub')
+                DOCKERHUB_CREDENTIALS      = credentials('DWENUP_DOCKERHUB')
                 AWS_REGION_NAME            = credentials('AWS_REGION_NAME')
                 AWS_LOG_GROUP              = credentials('AWS_LOG_GROUP')
                 AWS_LOG_STREAM             = credentials('AWS_LOG_STREAM')
                 AWS_LOGGER_NAME            = credentials('AWS_LOGGER_NAME')
                 BACKEND_FIRST_INSTANCE_IP  = credentials('BACKEND_FIRST_INSTANCE_IP')
                 BACKEND_SECOND_INSTANCE_IP = credentials('BACKEND_SECOND_INSTANCE_IP')
+                HOKINS_TOKEN               = credentials('HOKINS_TOKEN')
     }
     stages {
+        stage('Start') {
+            steps {
+                script {
+                    blocks = [
+                        [
+                            "type": "section",
+                            "text": [
+                                "type": "mrkdwn",
+                                "text": "*<BACKEND PIPELINE START!>*"
+                            ]
+                        ],
+                        [
+                            "type": "divider"
+                        ]
+                        ,
+                        [
+                            "type": "section",
+                            "fields": [
+                                [
+                                    "type": "mrkdwn",
+                                    "text": "*Branch:*\n<${env.GIT_URL}|${env.GIT_BRANCH}>"
+                                ],
+                                [
+                                    "type": "mrkdwn",
+                                    "text": "*BuildTag:*\n${env.BUILD_TAG}"
+                                ],
+                            ]
+                        ]
+	                ]
+                    slackSend (color: '#0FFF22', blocks: blocks)
+                }
+            }
+        }
         stage('Build') {
             steps {
                 script {
-                    sh 'echo "dwen is handsome"'
+                    NAME_OF_STAGE = "${env.STAGE_NAME}"
+                    sh 'echo "dwen is handsome!"'
                     sh """
                     echo 'AWS_IAM_ACCESS_KEY_ID       = "${env.AWS_IAM_ACCESS_KEY_ID}"' >> my_settings.py
                     echo 'AWS_IAM_SECRET_ACCESS_KEY   = "${env.AWS_IAM_SECRET_ACCESS_KEY}"' >> my_settings.py
@@ -54,7 +90,6 @@ pipeline {
                             }
                         }' >> my_settings.py
                     """
-
                     app = docker.build "${env.IMAGENAME}"
                 }
             }
@@ -62,6 +97,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
+                    NAME_OF_STAGE = "${env.STAGE_NAME}"
                     app.inside {
                         sh 'python3 manage.py test'
                     }
@@ -71,6 +107,7 @@ pipeline {
         stage('Push') {
             steps {
                 script {
+                    NAME_OF_STAGE = "${env.STAGE_NAME}"
                     sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
                     app.push("${env.BUILD_NUMBER}")
                     app.push("latest")
@@ -80,6 +117,7 @@ pipeline {
         stage('Delete') {
             steps {
                 script {
+                    NAME_OF_STAGE = "${env.STAGE_NAME}"
                     sh "docker rmi '${env.IMAGENAME}:${env.BUILD_NUMBER}'"
                     sh "docker rmi '${env.IMAGENAME}:latest'"
                 }
@@ -87,6 +125,9 @@ pipeline {
         }
         stage('Deploy #1') {
             steps {
+                script {
+                    NAME_OF_STAGE = "${env.STAGE_NAME}"
+                }
                 sshagent(credentials : ['real-ssh-key']) {
                     sh "ssh -o StrictHostKeyChecking=no ubuntu@'${BACKEND_FIRST_INSTANCE_IP}' 'docker pull '${env.IMAGENAME}:latest' && docker stop \$(docker ps -aq) && docker container prune -f && docker image prune -f && docker run -dp 8000:8000 '${env.IMAGENAME}:latest''"
                 }
@@ -94,8 +135,18 @@ pipeline {
         }
         stage('Deploy #2') {
             steps {
+                script {
+                    NAME_OF_STAGE = "${env.STAGE_NAME}"
+                }
                 sshagent(credentials : ['real-ssh-key']) {
                     sh "ssh -o StrictHostKeyChecking=no ubuntu@'${BACKEND_SECOND_INSTANCE_IP}' 'docker pull '${env.IMAGENAME}:latest' && docker stop \$(docker ps -aq) && docker container prune -f && docker image prune -f && docker run -dp 8000:8000 '${env.IMAGENAME}:latest''"
+                }
+            }
+        }
+        stage('Finish') {
+            steps {
+                script {
+                    slackSend (color: '#0075FC', message: "*<BACKEND PIPELINE FINISHED>*\n<${env.RUN_DISPLAY_URL}|JenkinsPipeLine>")
                 }
             }
         }
@@ -104,6 +155,12 @@ pipeline {
         always {
             cleanWs()
         }
+        failure {
+            slackSend (color: '#FF1001', message: """
+            <!channel>\n*<$NAME_OF_STAGE FAILED!>*\nMore Info at : <${env.RUN_DISPLAY_URL}/consoleFull|Console log>
+            """)
+        }
     }
 }
+
 
