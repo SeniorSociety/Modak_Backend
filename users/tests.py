@@ -222,7 +222,7 @@ class NicknameTest(TestCase):
         self.assertEqual(response.json(), {"MESSAGE" : "INVALID_TOKEN"})
         self.assertEqual(response.status_code, 400)
 
-class MyPositngsTest(TestCase):
+class MyProfileTest(TestCase):
     def setUp(self):
         gallery = Gallery.objects.create(
             name = "test",
@@ -272,7 +272,7 @@ class MyPositngsTest(TestCase):
     def test_mypage_postings_list_success(self):
         client   = Client()
         headers  = {'HTTP_Authorization' : self.token}
-        response = client.get('/users/postings', **headers)
+        response = client.get('/users/myprofile', **headers)
 
         self.assertEqual(response.status_code, 200)
 

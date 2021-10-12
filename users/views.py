@@ -7,7 +7,7 @@ from users.models     import User, History
 from core.utils       import CloudStorage
 from users.utils      import login_decorator
 from my_settings      import AWS_IAM_ACCESS_KEY_ID, AWS_S3_STORAGE_BUCKET_NAME, AWS_IAM_SECRET_ACCESS_KEY, AWS_S3_BUCKET_URL, SECRET_KEY, ALGORITHMS
-from galleries.models import Posting, Bookmark, Like
+from galleries.models import Posting, Bookmark, Like, Comment
 
 class NamecardView(View):
     @login_decorator
@@ -113,58 +113,61 @@ class NicknameView(View):
         except KeyError:
             return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
 
-class MyPostingsView(View):
+class MyProfileView(View):
     @login_decorator
     def get(self, request):
-        postings = Posting.objects.filter(user=request.user).select_related("gallery")
-        
-        posts = [{
-            "gallery_id" : posting.gallery.id,
-            "id"         : posting.id,
-            "title"      : posting.title,
-            "content"    : posting.content,
-            "created_at" : posting.created_at
-        } for posting in postings]
-        
-        return JsonResponse({'MESSAGE' : posts}, status = 200)
+        user = request.user
+        data = Profile(user)
+        return JsonResponse({'MESSAGE' : data}, status = 200)
 
-class ProfileView(View):
+class OtherProfileView(View):
     @login_decorator
     def get(self, request, user_id):
         if not User.objects.filter(id=user_id).exists():
             return JsonResponse({'MESSAGE' : 'NOT_FOUND_USER'}, status=400)
-
+ 
         user = User.objects.get(id=user_id)
+        data = Profile(user)
+        data["is_editable"] = True if user == request.user else False
+        return JsonResponse({"MESSAGE" : data}, status=200)
+    
+def Profile(user):
         data = {
-            "image"    : user.image,
-            "name"     : user.name,
-            "slogan"   : user.slogan,
-            "introduce": user.introduce,
-            "email"    : user.email,
-            "location" : user.location,
-            "works"    : [{
-                "year"    : history.year,
-                "title"   : history.title,
-                "subtitle": history.subtitle
-                } for history in History.objects.filter(user=user)],
-            "bookmarks" : [{
-                    "gallery_name"  : bookmark.gallery.name,
-                    "gallery_image" : bookmark.gallery.image
-                } for bookmark in Bookmark.objects.select_related("gallery").filter(user_id=user.id)],
-            "postings" : [{
-                    "gallery_id": posting.gallery.id,
-                    "id"        : posting.id,
-                    "title"     : posting.title,
-                    "content"   : posting.content,
-                    "created_at": posting.created_at
-                } for posting in Posting.objects.filter(user=user).select_related("gallery")],
-            "is_editable" : True if user == request.user else False,
-            "likes" : [{
-                    "gallery_id": like.posting.gallery.id,
-                    "id"        : like.posting.id,
-                    "title"     : like.posting.title,
-                    "content"   : like.posting.content,
-                    "created_at": like.posting.created_at
-                } for like in Like.objects.filter(user=user).select_related("posting")]
+            "image"              : user.image,
+            "name"               : user.name,
+            "slogan"             : user.slogan,
+            "introduce"          : user.introduce,
+            "email"              : user.email,
+            "location"           : user.location,
+            "works"              : [{
+                "year"     : history.year,
+                "title"    : history.title,
+                "subtitle" : history.subtitle
+            } for history in History.objects.filter(user = user)],
+            "bookmarks"          : [{
+                "gallery_name"  : bookmark.gallery.name,
+                "gallery_image" : bookmark.gallery.image
+            } for bookmark in Bookmark.objects.select_related("gallery").filter(user = user)],
+            "postings"           : [{
+                "gallery_id" : posting.gallery.id,
+                "id"         : posting.id,
+                "title"      : posting.title,
+                "content"    : posting.content,
+                "created_at" : posting.created_at
+            } for posting in Posting.objects.filter(user = user).select_related("gallery")],
+            "likes"              : [{
+                "gallery_id" : like.posting.gallery.id,
+                "id"         : like.posting.id,
+                "title"      : like.posting.title,
+                "content"    : like.posting.content,
+                "created_at" : like.posting.created_at
+            } for like in Like.objects.filter(user = user).select_related("posting")],
+            "commented_postings" : [{
+                "gallery_id" : comment.posting.gallery.id,
+                "id"         : comment.posting.id,
+                "title"      : comment.posting.title,
+                "content"    : comment.posting.content,
+                "created_at" : comment.posting.created_at
+            } for comment in Comment.objects.filter(user = user).select_related("posting")]
         }
-        return JsonResponse({"MESSAGE":data}, status=200)
+        return data
