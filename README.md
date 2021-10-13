@@ -6,6 +6,17 @@
 
 <br>
 
+**기획서** [**[Link]**](https://docs.google.com/document/d/136YOXGBK_PrPL4G3J9W8oy0888f45thhphWWxeoCrqM/edit?usp=sharing)
+
+- 개요, 타겟, 기능, 개선 사항 등의 기획문서입니다.
+- 문서는 지속적으로 업데이트되고 있습니다.
+
+**Workflow** [**[Link]**](https://www.figma.com/file/lhoMVBbDJclwdIhpG8uONm/%EB%AA%A8%EB%8B%A5%EB%B6%88-sketch?node-id=2%3A474)
+
+- 사이트의 전반적인 기능을 가시화한 Workflow입니다.
+- 시니어 마케팅 기획자와 위클리 미팅을 통해서 Workflow를 최적화하고 Figma로 작성했습니다.
+<br>
+
 ### 타겟
 
 - 초기 타겟은 경제력을 보유하고 새로운 인프라를 경험하는 것에 대한 거부감이 낮은 액티브 시니어
@@ -39,7 +50,18 @@
 
 - 개발기간 : 2021/8/30 ~ 2021/9/30
 - 개발 인원 : 프론트엔드 4명, 백엔드 3명
+<br>
 
+## 버전 관리
+
+![Flowchart_(1)](https://user-images.githubusercontent.com/84912594/137124523-b5fed45f-810e-460c-9a45-86d334806047.jpeg)
+
+
+Branch는 Gitflow 방식을 따라 5가지로 분류했습니다.
+<br>
+다만 테스트 서버를 별도로 두고 있지 않기 때문에, release 브랜치를 기준으로 서버에 배포됩니다.
+<br>
+CI/CD Pipeline도 Release branch와 연결해두었습니다.
 <br>
 
 ## AWS Architecture Diagram
@@ -51,7 +73,7 @@
 - VPC를 Front, Back, DB로 분리하여 내부 접속을 제외하고 사용자가 Back, DB에 접근할 수 없도록 설계했습니다.
 - 서버, Jenkins용 EC2는 Private Subnet 내에 만들고, 별도의 점프 호스트인 Bastion을 두어 ssh 접속 외의 외부 접속을 방지했습니다.
 - Front, Back 서버 EC2를 각각 2개씩 만들어, 하나의 서버가 다운되어도 다른 서버가 유지될 수 있도록 로드밸런스로 연결했습니다.
-- Cloud Watch를 통해 오류 로그를 수집하고, 특정 임계값에 도달했을 경우 아래와 같은 알람이 울리도록 설정했습니다.
+- Cloud Watch를 통해 오류 로그를 수집하고, 특정 임계값에 도달했을 경우 AWS Chatbot을 통해 Slack에 아래와 같은 알람이 울리도록 설정했습니다.
 
 <div align=center><img src="https://modakfire-static.s3.ap-northeast-2.amazonaws.com/readme/CloudWatch_Alarm.png"></div>
 
@@ -74,6 +96,15 @@
 마지막 Stage 배포까지 완료되었을 경우, 아래 슬랙 메세지가 전달됩니다.
 
 <div align=center><img src="https://modakfire-static.s3.ap-northeast-2.amazonaws.com/readme/Jenkins+Finished.png"></div>
+
+<br>
+
+## S3 Cronjob
+
+S3에 호스팅을 하면서 발생하는 쓸모없는 이미지들을 지워주는 작업이 추가로 필요하게 되었습니다. <br>
+이를 위해 boto3와 python sqlalchemy을 바탕으로 작업을 해주는 스크립트를 작성하고, Jenkins를 이용하여 Cronjob을 실행시켰습니다.
+
+![cronjob](https://user-images.githubusercontent.com/84912594/137124088-d3a2bc59-decd-49f3-a695-863c92715880.jpg)
 
 <br>
 
