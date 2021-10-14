@@ -95,6 +95,34 @@ class KakaoLoginView(View):
         except KeyError:
             return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
 
+class NaverLoginView(View):
+    def post(self, request):
+        try:
+            access_token = request.headers.get('Authorization')
+
+            if not access_token:
+                return JsonResponse({'MESSAGE' : 'INVALID_TOKEN'}, status=400)
+
+            response = requests.get(
+                "https://openapi.naver.com/v1/nid/me",
+                headers = {'Authorization': f'Bearer {access_token}'},
+                timeout=3
+            ).json()
+
+            user, created = User.objects.get_or_create(
+                naver = response['response']['id']
+            )
+            
+            token = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
+
+            return JsonResponse({
+                'MESSAGE' : 'SUCCESS',
+                'TOKEN' : token
+            }, status=200)
+
+        except KeyError:
+            return JsonResponse({'MESSAGE' : 'KEY_ERROR'}, status=400)
+
 class NicknameView(View):
     @login_decorator
     def post(self, request):
