@@ -88,8 +88,9 @@ class KakaoLoginView(View):
             token = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
 
             return JsonResponse({
-                'MESSAGE' : 'SUCCESS',
-                'TOKEN' : token
+                'MESSAGE'      : 'SUCCESS',
+                'TOKEN'        : token,
+                'NEEDNICKNAME' : created
             }, status=200)
 
         except KeyError:
@@ -116,8 +117,9 @@ class NaverLoginView(View):
             token = jwt.encode({'id' : user.id}, SECRET_KEY, algorithm = ALGORITHMS)
 
             return JsonResponse({
-                'MESSAGE' : 'SUCCESS',
-                'TOKEN' : token
+                'MESSAGE'      : 'SUCCESS',
+                'TOKEN'        : token,
+                'NEEDNICKNAME' : created
             }, status=200)
 
         except KeyError:
