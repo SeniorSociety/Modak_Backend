@@ -3,9 +3,10 @@ from django.db import models
 from core.models import TimeStampModel
 
 class User(TimeStampModel):
-    nickname  = models.CharField(max_length=30, null=True)
-    kakao     = models.CharField(max_length=30, null=True)
-    naver     = models.CharField(max_length=30, null=True)
+    nickname  = models.CharField(max_length=45, null=True)
+    kakao     = models.CharField(max_length=200, null=True)
+    naver     = models.CharField(max_length=200, null=True)
+    google    = models.CharField(max_length=200, null=True)
     image     = models.URLField(max_length=2000, null=True)
     name      = models.CharField(max_length=30, null=True)
     slogan    = models.CharField(max_length=2000, null=True)

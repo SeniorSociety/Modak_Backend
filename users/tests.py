@@ -171,7 +171,45 @@ class KaKaoSignInTest(TestCase):
 
         self.assertEqual(response.json(), {'MESSAGE' : 'INVALID_TOKEN'})
         self.assertEqual(response.status_code, 400)
-        
+
+class NaverSignInTest(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        User.objects.all().delete()
+
+    @patch('users.views.requests')
+    def test_naver_social_login_success(self, mocked_requests):
+        client = Client()
+
+        class MockedResponse:
+            def json(self):
+                return {
+                    'response' : {
+                        'id' : 'aldskjflksjflkasjlfkjlk1j23123'
+                    }
+                }
+        mocked_requests.get = MagicMock(return_value = MockedResponse())
+        headers             = {'HTTP_Authorization' : 'FAKE_TOKEN'}
+        response            = client.post('/users/naver', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+
+        token    = response.json()['TOKEN']
+        user_id  = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHMS)['id']
+        naver_id = User.objects.get(id=user_id).naver
+
+        self.assertEqual(naver_id, 'aldskjflksjflkasjlfkjlk1j23123')
+
+    @patch('users.views.requests')
+    def test_naver_social_login_invalid_token(self, mocked_requests):
+        client   = Client()
+        response = client.post('/users/naver', content_type='application/json')
+
+        self.assertEqual(response.json(), {'MESSAGE' : 'INVALID_TOKEN'})
+        self.assertEqual(response.status_code, 400)
+
 class NicknameTest(TestCase):
     def setUp(self):
         User.objects.create(
