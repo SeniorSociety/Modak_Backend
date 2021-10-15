@@ -163,17 +163,18 @@ class OtherProfileView(View):
     
 def Profile(user):
         data = {
-            "image"              : user.image,
-            "name"               : user.name,
-            "slogan"             : user.slogan,
-            "introduce"          : user.introduce,
-            "email"              : user.email,
-            "location"           : user.location,
-            "works"              : [{
-                "year"     : history.year,
-                "title"    : history.title,
-                "subtitle" : history.subtitle
-            } for history in History.objects.filter(user = user)],
+            "namecard" : {
+                "image"              : user.image,
+                "name"               : user.name,
+                "slogan"             : user.slogan,
+                "introduce"          : user.introduce,
+                "email"              : user.email,
+                "location"           : user.location,
+                "works"              : [{
+                    "year"     : history.year,
+                    "title"    : history.title,
+                    "subtitle" : history.subtitle
+                } for history in History.objects.filter(user = user)]},
             "bookmarks"          : [{
                 "gallery_name"  : bookmark.gallery.name,
                 "gallery_image" : bookmark.gallery.image
