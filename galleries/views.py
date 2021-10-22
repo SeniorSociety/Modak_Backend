@@ -5,7 +5,6 @@ from django.core.paginator import Paginator
 from django.views          import View
 from django.http           import JsonResponse
 from core.utils            import CloudStorage
-from rest_framework        import viewsets
 
 from galleries.models   import Gallery, Bookmark, Posting, Comment, Viewcount, Like
 from users.utils        import login_decorator

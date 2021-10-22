@@ -153,13 +153,13 @@ class MyProfileView(View):
 class OtherProfileView(View):
     @login_decorator
     def get(self, request, user_id):
-        if not User.objects.filter(id=user_id).exists():
-            return JsonResponse({'MESSAGE' : 'NOT_FOUND_USER'}, status=400)
+        if not User.objects.filter(id = user_id).exists():
+            return JsonResponse({'MESSAGE' : 'NOT_FOUND_USER'}, status = 400)
  
-        user = User.objects.get(id=user_id)
+        user = User.objects.get(id = user_id)
         data = Profile(user)
         data["is_editable"] = True if user == request.user else False
-        return JsonResponse({"MESSAGE" : data}, status=200)
+        return JsonResponse({"MESSAGE" : data}, status = 200)
     
 def Profile(user):
         data = {
