@@ -143,6 +143,8 @@ S3에 호스팅을 하면서 발생하는 쓸모없는 이미지들을 지워주
 - 게시글 등록과 함께 이미지는 AWS S3에 저장
 - DB에는 해당 이미지 오브젝트 URL 저장
 <img width="411" alt="스크린샷 2021-10-27 오후 3 30 22" src="https://user-images.githubusercontent.com/4047515/139012667-e0008a81-5a69-49f2-b674-0a8f8ebb4b6a.png">
+<img width="404" alt="스크린샷 2021-10-27 오후 3 30 51" src="https://user-images.githubusercontent.com/4047515/139012950-6feae190-6fc5-4956-9c3a-30d8feac3f3f.png">
+
 
 <br>
 
@@ -178,6 +180,8 @@ History (이력)
 Introduce (소개&관심분야)
 
 - 유저의 소개 및 관심분야를 자유롭게 텍스트로 작성
+<img width="413" alt="스크린샷 2021-10-27 오후 3 19 11" src="https://user-images.githubusercontent.com/4047515/139012924-4075ffed-63b0-410e-862c-e8f54ee00b4a.png">
+
 <img width="413" alt="스크린샷 2021-10-27 오후 3 19 11" src="https://user-images.githubusercontent.com/4047515/139012715-e91844f5-598f-45de-b9c5-85eaefb6bacb.png">
 
 <br>
